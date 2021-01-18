@@ -11,6 +11,8 @@ def rocchio(X_train, X_test, y_train, y_test,string):
     clf = NearestCentroid()
     clf.fit(X_train, y_train.values.ravel())
     #pickles.criarModelo(clf,"Rocchio "+string)
+    if("Fold" in string):
+        pickles.criarModelo(clf,"oraculo/"+string) #SALVAR MODELO
     y_predito = clf.predict(X_test)
     micro = f1_score(y_test,y_predito,average='micro')
     macro = f1_score(y_test,y_predito,average='macro')

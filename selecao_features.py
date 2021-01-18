@@ -20,13 +20,17 @@ tfidf = tratamentoDados("tfidf")
 aux = sparse.hstack((csr_matrix(data),csr_matrix(tfidf) ))
 data =  pd.DataFrame.sparse.from_spmatrix(aux)
 del tfidf
-#X_train, X_test, y_train, y_test = train_test_split(data, label,test_size=0.3,stratify = label,random_state =5)
-#randomforest.randomForest(X_train, X_test, y_train, y_test,"sem feature selection com os dados combinados no RF")
-##valores = [1,2,3,5,10,20,50,100]
-##for valor in valores:
-##    knn.knn(X_train, X_test, y_train, y_test,"sem selecao",valor)
-#knn.knn(X_train, X_test, y_train, y_test,"sem selecao",1)
-#print("")
+X_train, X_test, y_train, y_test = train_test_split(data, label,test_size=0.3,stratify = label,random_state =5)
+randomforest.randomForest(X_train, X_test, y_train, y_test,"sem feature selection com os dados combinados no RF")
+#valores = [1,2,3,5,10,20,50,100]
+#for valor in valores:
+#    knn.knn(X_train, X_test, y_train, y_test,"sem selecao",valor)
+knn.knn(X_train, X_test, y_train, y_test,"sem selecao",1)
+#possibilidade = [0.001,1,10,100,1000,2000,2500,3000]
+#for pos in possibilidade:
+#    supportVectorMachine.svc(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",pos)
+supportVectorMachine.svc(X_train, X_test, y_train, y_test,"COM TFIDF",10)
+print("")
 # =============================================================================
 # =============================================================================
 for i in np.arange(0.1,1,0.1):
@@ -36,11 +40,11 @@ for i in np.arange(0.1,1,0.1):
     print("tamanho reduzido "+str(data_feature_importance.shape))
     X_train, X_test, y_train, y_test = train_test_split(csr_matrix(data_feature_importance), label,test_size=0.3,stratify = label,random_state =5)
     randomforest.randomForest(X_train, X_test, y_train, y_test,"feature importance com os dados combinados no RF")
-    #valores = [1,2,3,5,10,20,50,100]
-    #for valor in valores:
-    #    knn.knn(X_train, X_test, y_train, y_test,"feature importance",valor)
 
     knn.knn(X_train, X_test, y_train, y_test,"feature importance",1)
+    X_train, X_test, y_train, y_test = train_test_split(data_feature_importance, label,test_size=0.3,stratify = label,random_state =5)
+    supportVectorMachine.svc(X_train, X_test, y_train, y_test,"COM TFIDF",10)
+
 #
 #    num_atributos = data_feature_importance.shape[1]
 #    del data_feature_importance

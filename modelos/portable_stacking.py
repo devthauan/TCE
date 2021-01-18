@@ -10,31 +10,24 @@ from scipy.sparse import csr_matrix
 from preparacaoDados import tratamentoDados
 from sklearn.neighbors import NearestCentroid
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score
+import sys
+sys.path.insert(1, '/projetoTCE/tratamentos')
+from tratamentos import salvar_dados
+from tratamentos import pickles
 
-data, label = tratamentoDados("OHE")
-data = pd.DataFrame.sparse.from_spmatrix(csr_matrix(data))
-tfidf = tratamentoDados("tfidf")
-       
-#from tratamentos import pickles
-## removendo os documentos ja selecionados
-#index = pickles.carregaPickle("index")
-#data.drop(index,inplace = True)
-#tfidf.drop(index,inplace = True)
-#label.drop(index,inplace = True)
-print(data.shape)
-print(tfidf.shape)
-#possibilidade = [["rf","rf","rf"],["rf","rf","knn"],["rf","rf","svc"],["rf","rf","rocchio"],["rf","knn","rf"],["rf","knn","knn"],["rf","knn","svc"],["rf","knn","rocchio"],["rf","svc","rf"],["rf","svc","knn"],["rf","svc","svc"],["rf","svc","rocchio"],["knn","rf","rf"],["knn","rf","knn"],["knn","rf","svc"],["knn","rf","rocchio"],["knn","knn","rf"],["knn","knn","knn"],["knn","knn","svc"],["knn","knn","rocchio"],["knn","svc","rf"],["knn","svc","knn"],["knn","svc","svc"],["knn","svc","rocchio"],["svc","rf","rf"],["svc","rf","knn"],["svc","rf","svc"],["svc","rf","rocchio"],["svc","knn","rf"],["svc","knn","knn"],["svc","knn","svc"],["svc","knn","rocchio"],["svc","svc","rf"],["svc","svc","knn"],["svc","svc","svc"],["svc","svc","rocchio"]]
-possibilidade = [['svc', 'rf', 'svc']]
-for i in range(len(possibilidade)):
-    #iniciando vetores
+def stacking(X_train, X_test, y_train, y_test,string,possibilidade, X_train_text, X_test_text):
     resultadoOHE = pd.DataFrame([])
     resultadoTFIDF = pd.DataFrame([])
     rotulo = pd.DataFrame([])
-    prob = possibilidade[i]
+    prob = possibilidade
     #escolhendo os parametros
     algoritmo1 = prob[0]
     algoritmo2 = prob[1]
     algoritmo3 = prob[2]
+    data = pd.concat([X_train,X_test],axis = 0)
+    tfidf = pd.concat([X_train_text,X_test_text],axis = 0)
+    label = pd.concat([y_train,y_test],axis = 0)
     kf = KFold(n_splits=5,shuffle=True,random_state=0)
     for train_index, test_index in kf.split(data):
 #        print("TRAIN:", train_index, "TEST:", test_index)
@@ -70,17 +63,17 @@ for i in range(len(possibilidade)):
     dados = pd.concat([pd.DataFrame(resultadoOHE),pd.DataFrame(resultadoTFIDF)],axis = 1)
     dados = dados.fillna(0)
     # Salva os dados do stacking para usar no active learning
-#    dados.to_csv('dados_stacking.csv', index=False)
-    X_train, X_test, y_train, y_test = train_test_split(dados, rotulo,test_size=0.3,stratify = rotulo,random_state= 0)
+    dados.to_csv("pickles/oraculo/"+string+'.csv', index=False)
+    X_train, X_test, y_train, y_test = train_test_split(dados, rotulo,test_size=0.3,random_state= 0)
     print(prob)
     if(algoritmo3 == "rf"):
-        randomforest.randomForest(X_train, X_test, y_train, y_test,"stacking")
+        randomforest.randomForest(X_train, X_test, y_train, y_test,string)
     elif(algoritmo3 == "rocchio"):
-        rocchio.rocchio(X_train, X_test, y_train, y_test,"stacking")
+        rocchio.rocchio(X_train, X_test, y_train, y_test,string)
     elif(algoritmo3 == "knn"):
 #        for i in [1,2,3,5,6,7,8,9,10]: #teste de hiperparametro
-        knn.knn(X_train, X_test, y_train, y_test,"stacking",1)
+        knn.knn(X_train, X_test, y_train, y_test,string,1)
 #        y_stacking = knn.knn(X_train, X_test, y_train, y_test,"stacking",1)
     else:
 #        for i in [0.001,1,10,100,1000,2000,2500,3000]: #teste de hiperparametro
-        supportVectorMachine.svc(X_train, X_test, y_train, y_test,"stacking",100)
+        supportVectorMachine.svc(X_train, X_test, y_train, y_test,string,100)

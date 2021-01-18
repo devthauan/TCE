@@ -18,16 +18,21 @@ def tratamentoDados(escolha):
     data.columns = [c.lower().replace(' ', '_') for c in data.columns]
     data.columns = [tratar_texto.removerCaracteresEspeciais(c)for c in data.columns]
     data.columns = [tratar_texto.tratarnomecolunas(c)for c in data.columns]
+    # Excluindo empenhos diferentes aglomerados na classe 92
+    exercicio_anterior = data['natureza_despesa_cod'].str.contains(".\..\...\.92\...", regex= True, na=False)
+    index = exercicio_anterior.where(exercicio_anterior==True).dropna().index
+    data.drop(index,inplace = True)
+    data.reset_index(drop=True, inplace=True)
     # Deletando empenhos sem relevancia devido ao saldo zerado
     index = data["valor_saldo_do_empenho"].where(data["valor_saldo_do_empenho"] == 0).dropna().index
     data.drop(index,inplace = True)
     data.reset_index(drop=True, inplace=True)
-#    data = data[:5000] #limitando os dados para fazer testes
+    data = data[:500] #limitando os dados para fazer testes
     # Deleta colunas que atraves de analise foram identificadas como nao uteis
     data = data.drop(['empenho_sequencial_empenho.1','classificacao_orcamentaria_descricao',
                       'natureza_despesa_nome','valor_estorno_anulacao_empenho',
                       'valor_anulacao_cancelamento_empenho','fonte_recurso_cod',
-                      'elemento_despesa','grupo_despesa'], axis='columns')
+                      'elemento_despesa','grupo_despesa','empenho_sequencial_empenho'], axis='columns')
     # Funcao que gera o rotulo e retorna as linhas com as naturezas de despesa que so aparecem em 1 empenho
     label,linhas_label_unica = tratar_label.tratarLabel(data)
     label = pd.DataFrame(label)
@@ -49,6 +54,22 @@ def tratamentoDados(escolha):
     data.drop(excluir,inplace = True)
     data.reset_index(drop=True, inplace=True)
     del excluir, sem_relevancia
+    #Codigo para pegar 60% dos dados estratificado 
+# =============================================================================
+#     #Pegando 60% stratificado para teste
+# =============================================================================
+#    X_train, data, y_train, label = train_test_split(data, label,test_size=0.6,stratify = label,random_state =5)
+#    del X_train,y_train
+#    data.reset_index(drop=True,inplace=True)
+#    label.reset_index(drop=True,inplace=True)
+#    # Pegando agora as classes com 1 natureza apenas para excluir
+#    label,excluir = tratar_label.label_1_elmento(label)
+#    data.drop(excluir,inplace=True)
+#    data.reset_index(drop=True,inplace=True)
+#    del excluir
+# =============================================================================
+#     #Pegando 60% stratificado para teste
+# =============================================================================
     if(escolha == "tfidf"):
         # Funcao que limpa o texto retira stopwords acentos pontuacao etc.
         textoTratado = tratar_texto.cleanTextData(data["empenho_historico"])
@@ -72,8 +93,11 @@ def tratamentoDados(escolha):
     data['pessoa_juridica'] = identificacao_pessoa
     del identificacao_pessoa
     data['pessoa_juridica'] = data['pessoa_juridica'].astype("int8")
-#    data = data.drop(["beneficiario_cpf/cnpj","beneficiario_cpf","beneficiario_cnpj","beneficiario_nome"], axis='columns')
-    data = data.drop(["beneficiario_cpf","beneficiario_cnpj","beneficiario_nome"], axis='columns')
+    data = data.drop(["beneficiario_cpf","beneficiario_cnpj","beneficiario_cpf/cnpj"], axis='columns')
+    # Tratando o campo beneficiario nome como texto livre e fazendo TFIDF
+    texto_beneficiario = tratar_texto.cleanTextData(data["beneficiario_nome"])
+    tfidf_beneficiario = tratar_texto.calculaTFIDF(texto_beneficiario)
+    data = data.drop("beneficiario_nome", axis='columns')
     
     # Codigo que gera o meta atributo "orgao_sucedido" onde 1 representa que o orgao tem um novo orgao sucessor e 0 caso contrario
     orgao_sucedido = [0] * data.shape[0]
@@ -107,15 +131,7 @@ def tratamentoDados(escolha):
       acao_programa[i] = (data['acao'].iloc[i] + " & " + data['programa'].iloc[i])
     data['acao_programa'] = acao_programa
     del acao_programa
-    data = data.drop(["acao","programa"],axis = 1)
-    
-#    # Codigo que concatena os 3 primeiros codigos de empenho sequencial
-#    resumo_classificacao = [0] * data.shape[0]
-#    for i in range(data.shape[0]):
-#        resumo_classificacao[i] = int(data['empenho_sequencial_empenho'].iloc[i][:13].replace(".", ""))
-#    data['resumo_classificacao_orcamentaria'] = resumo_classificacao
-#    del resumo_classificacao
-    data = data.drop('empenho_sequencial_empenho',axis =1)
+    data = data.drop(["acao","programa"],axis = 1)   
     
     # Codigo que mostra a quantidade de empenhos por processo
     quantidade_empenhos_processo = data['empenho_numero_do_processo'].value_counts()
@@ -138,6 +154,7 @@ def tratamentoDados(escolha):
             data[col] = pd.DataFrame(min_max_scaler.fit_transform(data[col].values.reshape(-1,1)))
     # Excluindo as colunas que ja foram tratadas
     data = data.drop(['empenho_historico','natureza_despesa_cod'], axis='columns')
+    data = pd.concat([data,tfidf_beneficiario],axis = 1)
     if(escolha == "sem OHE"):
         return data, label
     elif(escolha == "OHE"):
@@ -146,40 +163,11 @@ def tratamentoDados(escolha):
         return data, label
     else: return None
 ###########################DADOS TRTADOS######################################
-#  
-#
-##CPF 191.0 tem mais de um nome
-## Código que mostra a inconsistência dos cpfs cnpjs
-#data['empenho_sequencial_empenho'].where(data['beneficiario_cpf/cnpj']==191.0).dropna()
-#data['beneficiario_nome'].where(data['beneficiario_cpf']=="191").dropna().value_counts()
-#data['beneficiario_nome'].where(data['beneficiario_cnpj']=="00000000000191").dropna().value_counts()
-##CARLOS PEREIRA DE SOUZA (cpf)    2 e BANCO DO BRASIL SA (cnpj)   200
-#
-#
-#data['beneficiario_cpf/cnpj']
-#
-#
-#
-#
-#
-#tamanhos2 = []
-#for i in range(len(data['beneficiario_cpf/cnpj'].value_counts())):
-#    tamanhos2.append(len(str(data['beneficiario_cpf/cnpj'].value_counts().index[i])))
-#    
-#tamanhoscpf = []
-#for i in range(len(data['beneficiario_cpf'].value_counts())):
-#    tamanhoscpf.append(len(str(data['beneficiario_cpf'].value_counts().index[i])))
-#    
-#tamanhoscnpj = []
-#for i in range(len(data['beneficiario_cnpj'].value_counts())):
-#    tamanhoscnpj.append(len(str(data['beneficiario_cnpj'].value_counts().index[i])))
-#
-#
-#pd.DataFrame(tamanhoscpf).value_counts()
-#pd.DataFrame(tamanhoscnpj).value_counts()
-#pd.DataFrame(tamanhos2).value_counts()
-#
-#data['beneficiario_cnpj'].value_counts()
-#data['beneficiario_cpf'].value_counts()
-#data['beneficiario_cpf/cnpj'].value_counts()
-#data['beneficiario_nome'].where(data['beneficiario_cpf']=="1181045193").dropna().value_counts()
+
+
+
+
+
+
+
+

@@ -1,6 +1,7 @@
 from sklearn.neighbors import KNeighborsClassifier
 from tratamentos import salvar_dados
 from sklearn.metrics import f1_score
+from tratamentos import pickles
 
 
 def knn(X_train, X_test, y_train, y_test,string,num_neighbors):
@@ -11,6 +12,9 @@ def knn(X_train, X_test, y_train, y_test,string,num_neighbors):
     clf = KNeighborsClassifier(n_neighbors=num_neighbors,n_jobs = -1)
     clf.fit(X_train, y_train.values.ravel())
     #pickles.criarModelo(clf,"Rocchio "+string)
+    if("Fold" in string):
+        pickles.criarModelo(clf,"oraculo/"+string) #SALVAR MODELO
+        return 0
     y_predito = clf.predict(X_test)
     micro = f1_score(y_test,y_predito,average='micro')
     macro = f1_score(y_test,y_predito,average='macro')

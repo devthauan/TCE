@@ -12,6 +12,7 @@ emst = pd.DataFrame(*result.values())
 emst.to_csv('emst.csv', index=False, header=False)
 
 
+label['natureza_despesa_cod'] = [label['natureza_despesa_cod'].iloc[i].replace(".", "") for i in range(data.shape[0])]
 # Convertendo os dados para o formato correto
 data = dados.astype("str")
 for i in range(data.shape[0]):

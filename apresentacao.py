@@ -92,3 +92,17 @@ y_predito = [3,3,3,2,2,2]
 
 print( f1_score(y_test,y_predito,average='micro'))
 #print( f1_score(y_test,y_predito,average='macro'))
+
+
+plt.figure(figsize=(15,10))
+plt.title("Natureza de despesa",fontsize= 20)#y=1.08
+plt.rcParams.update({'font.size': 12})
+plt.bar(label['natureza_despesa_cod'].value_counts(ascending=True).index.astype("str"),label['natureza_despesa_cod'].value_counts(ascending=True).values )
+#plt.xticks(rotation=90)
+#plt.text(0, 0 + .25, str(1), color='black')
+#plt.text(48.5, 65000+ .25, str(64456), color='black')
+plt.xticks([0,50])
+plt.ylabel('Quantidade',fontsize=15)
+plt.xlabel('Elementos',fontsize=15)
+plt.show()
+

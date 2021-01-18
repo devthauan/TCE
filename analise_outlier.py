@@ -21,8 +21,7 @@ from modelos import dbscan
 
 # Retorna os dados tratados
 data, label = tratamentoDados("OHE")
-
-
+data = pd.DataFrame(data.values)
 # =============================================================================
 # Achar melhor eps
 # =============================================================================
@@ -45,7 +44,7 @@ data, label = tratamentoDados("OHE")
 #        pd.DataFrame(labels_dbscan)[0].value_counts()
 #        print("eps: ",eps," min_sample: ",min_sample," Silhouette score DBscan é: ",shilhouette_result," e foi dividido em ",pd.DataFrame(labels_dbscan)[0].value_counts().count()," clusters")
 
-eps = 1
+eps = 0.9
 min_sample =2
 
 #X_train, X_test, y_train, y_test = train_test_split(data, label,test_size=0.3,stratify = label)
@@ -71,8 +70,7 @@ print(len(position_outliers)," Outliers DBSCAN")
 # =============================================================================
 # Separa os dados em treino e teste
 X_train, X_test, y_train, y_test = train_test_split(data, label,test_size=0.3,stratify = label,random_state= 0)
-
-
+#
 #for i in [10,20,30,50,100,150,200,300,400,500,550,600]:
 #    num_mixtures = i
 #    predicao_gaussiana, prob = gaussian_mixtures.gaussian(X_train, X_test, num_mixtures)
@@ -80,7 +78,7 @@ X_train, X_test, y_train, y_test = train_test_split(data, label,test_size=0.3,st
 #    print(i,"Silhouette Gaussian Mixtures é: ",shilhouette_result," e foi dividido em ",pd.DataFrame(predicao_gaussiana)[0].value_counts().count()," clusters")
 #    analise_cluster.analisecluster(y_train,predicao_gaussiana)
 
-num_mixtures = 200
+num_mixtures = 20
 predicao_gaussiana, probabilidade_gaussiana = gaussian_mixtures.gaussian(X_train, X_test, num_mixtures)
 probabilidade_gaussiana = pd.DataFrame(probabilidade_gaussiana)
 #probabilidade_gaussiana.iloc[17].max()
@@ -96,7 +94,3 @@ for pos in linhas_outlier_gaussiano:
 f.flush()
 f.close()
 print(len(linhas_outlier_gaussiano)," Outliers Gaussian Mixtures")
-
-
-
-

@@ -47,7 +47,7 @@ sgd.sgd(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",100)
 #valores = [1,2,3,5,10,20,50,100]
 #for valor in valores:
 #    knn.knn(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",valor)
-#knn.knn(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",1)
+knn.knn(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",1)
 
 #SVC com parametro menor
 #supportVectorMachine.svc(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",0.1)

@@ -27,7 +27,7 @@ def tratamentoDados(escolha):
     index = data["valor_saldo_do_empenho"].where(data["valor_saldo_do_empenho"] == 0).dropna().index
     data.drop(index,inplace = True)
     data.reset_index(drop=True, inplace=True)
-    data = data[:500] #limitando os dados para fazer testes
+    data = data[:1000] #limitando os dados para fazer testes
     # Deleta colunas que atraves de analise foram identificadas como nao uteis
     data = data.drop(['empenho_sequencial_empenho.1','classificacao_orcamentaria_descricao',
                       'natureza_despesa_nome','valor_estorno_anulacao_empenho',

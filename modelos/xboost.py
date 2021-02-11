@@ -1,13 +1,12 @@
 import xgboost as xgb
 from sklearn.metrics import f1_score
 from tratamentos import salvar_dados
-from sklearn.ensemble import GradientBoostingClassifier
 from tratamentos import pickles
 
 
 def xboost(X_train, X_test, y_train, y_test,string,num_estagios,numero_classes):
     if("Fold" in string):
-        param = {'max_depth':6,'objective':'multi:softprob', "num_class":numero_classes}
+        param = {'max_depth':6,'objective':'multi:softprob',"eval_metric":"logloss", "num_class":numero_classes}
         num_round = num_estagios
         dtrain = xgb.DMatrix(X_train, y_train)
         bst = xgb.train(param, dtrain, num_round)

@@ -4,6 +4,9 @@ import numpy as np
 import pandas as pd
 from tratamentos import tratar_texto
 from wordcloud import WordCloud
+
+data, label = tratamentoDados("OHE")
+textoTratado = tratamentoDados("texto")
 data.reset_index(drop=True, inplace=True)
 
 for natureza in data['natureza_despesa_nome'].value_counts().index[43:]:

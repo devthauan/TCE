@@ -1,89 +1,42 @@
 ### Bibliotecas python ###
 import pickle
-import numpy as np
 import pandas as pd
-from tratamentos import pickles
+from scipy import sparse
 from sklearn import preprocessing
-from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import csr_matrix
 ### Meus pacotes ###
-from tratamentos import tratar_label
+from tratamentos import pickles
 from tratamentos import tratar_texto
 from tratamentos import one_hot_encoding
 ### Meus pacotes ###
 
-def tratamentoDados(escolha):
-    # Carrega os dados na variavel 'data' utilizando o Pandas
-    data = pickles.carregaPickle("df")
+def tratarDados(data):
     # Trata o nome das colunas para trabalhar melhor com os dados
     data.columns = [c.lower().replace(' ', '_') for c in data.columns]
     data.columns = [tratar_texto.removerCaracteresEspeciais(c)for c in data.columns]
     data.columns = [tratar_texto.tratarnomecolunas(c)for c in data.columns]
-    # Excluindo empenhos diferentes aglomerados na classe 92
-    exercicio_anterior = data['natureza_despesa_cod'].str.contains(".\..\...\.92\...", regex= True, na=False)
-    index = exercicio_anterior.where(exercicio_anterior==True).dropna().index
-    data.drop(index,inplace = True)
-    data.reset_index(drop=True, inplace=True)
-    del exercicio_anterior
     # Deletando empenhos sem relevancia devido ao saldo zerado
     index = data["valor_saldo_do_empenho"].where(data["valor_saldo_do_empenho"] == 0).dropna().index
     data.drop(index,inplace = True)
     data.reset_index(drop=True, inplace=True)
-    data = data[:1000] #limitando os dados para fazer testes
+    identificador_empenho = pd.DataFrame(data['empenho_sequencial_empenho'])
     # Deleta colunas que atraves de analise foram identificadas como nao uteis
     data = data.drop(['classificacao_orcamentaria_descricao',
                       'natureza_despesa_nome','valor_estorno_anulacao_empenho',
                       'valor_anulacao_cancelamento_empenho','fonte_recurso_cod',
                       'elemento_despesa','grupo_despesa','empenho_sequencial_empenho','periodo'], axis='columns')
-    # Funcao que gera o rotulo e retorna as linhas com as naturezas de despesa que so aparecem em 1 empenho
-    label,linhas_label_unica = tratar_label.tratarLabel(data)
+    # rotulo
+    label = data['natureza_despesa_cod']
     label = pd.DataFrame(label)
-    # Excluindo as naturezas de despesas que so tem 1 empenho
-    data = data.drop(linhas_label_unica)
-    data.reset_index(drop=True, inplace=True)
-    del linhas_label_unica
-    # Excluindo empenhos irrelevantes devido nao estarem mais em vigencia
-    sem_relevancia = pd.read_excel("analise/Naturezas de despesa com vigência encerrada.xlsx")
-    sem_relevancia = sem_relevancia['Nat. Despesa']
-    sem_relevancia = pd.DataFrame(sem_relevancia)
-    excluir = []
-    for i in range(len(sem_relevancia['Nat. Despesa'])):
-        excluir.append( label.where( label['natureza_despesa_cod'] == sem_relevancia['Nat. Despesa'].iloc[i] ).dropna().index )
-    excluir = [item for sublist in excluir for item in sublist]
-    # Excluindo as naturezas que nao estao mais vigentes
-    label.drop(excluir,inplace =True)
-    label.reset_index(drop=True, inplace=True)
-    data.drop(excluir,inplace = True)
-    data.reset_index(drop=True, inplace=True)
-    del excluir, sem_relevancia
-    #Codigo para pegar 60% dos dados estratificado 
-# =============================================================================
-#     #Pegando 60% stratificado para teste
-# =============================================================================
-#    X_train, data, y_train, label = train_test_split(data, label,test_size=0.6,stratify = label,random_state =5)
-#    del X_train,y_train
-#    data.reset_index(drop=True,inplace=True)
-#    label.reset_index(drop=True,inplace=True)
-#    # Pegando agora as classes com 1 natureza apenas para excluir
-#    label,excluir = tratar_label.label_1_elmento(label)
-#    data.drop(excluir,inplace=True)
-#    data.reset_index(drop=True,inplace=True)
-#    del excluir
-# =============================================================================
-#     #Pegando 60% stratificado para teste
-# =============================================================================
-    if(escolha == "tfidf"):
-        # Funcao que limpa o texto retira stopwords acentos pontuacao etc.
-        textoTratado = tratar_texto.cleanTextData(data["empenho_historico"])
-        # Função que gera o TF-IDF do texto tratado
-        tfidf = tratar_texto.calculaTFIDF(textoTratado)
-        del textoTratado
-#        return tfidf
-        pickles.criaPickle(tfidf,'tfidf')
-    if(escolha == "texto"):
-         # Funcao que limpa o texto retira stopwords acentos pontuacao etc.
-        textoTratado = tratar_texto.cleanTextData(data["empenho_historico"])
-#        return textoTratado
-        pickles.criaPickle(pd.DataFrame(textoTratado),'textoTratado')
+    data = data.drop('natureza_despesa_cod',axis = 1)
+    # tfidf
+    textoTratado = tratar_texto.cleanTextData(data["empenho_historico"])
+    # Função que gera o TF-IDF do texto tratado
+    with open('pickles/modelos_tratamentos/tfidf_modelo.pk', 'rb') as pickle_file:
+        tfidf_modelo = pickle.load(pickle_file)
+    tfidf =  pd.DataFrame.sparse.from_spmatrix(tfidf_modelo.transform(textoTratado))
+    del textoTratado
+    data = data.drop('empenho_historico',axis = 1)
 # =============================================================================
 #     Tratamento dos dados
 # =============================================================================
@@ -99,12 +52,10 @@ def tratamentoDados(escolha):
     data = data.drop(["beneficiario_cpf","beneficiario_cnpj","beneficiario_cpf/cnpj"], axis='columns')
     # Tratando o campo beneficiario nome como texto livre e fazendo TFIDF
     texto_beneficiario = tratar_texto.cleanTextData(data["beneficiario_nome"])
-    cv = TfidfVectorizer(dtype=np.float32)
-    data_cv = cv.fit(texto_beneficiario)
-    with open('pickles/modelos_tratamentos/tfidf_beneficiario.pk', 'wb') as fin:
-        pickle.dump(cv, fin)
-    data_cv = cv.transform(texto_beneficiario)
-    tfidf_beneficiario = pd.DataFrame.sparse.from_spmatrix(data_cv, columns = cv.get_feature_names())
+    with open('pickles/modelos_tratamentos/tfidf_beneficiario.pk', 'rb') as pickle_file:
+                tfidf_beneficiario_modelo = pickle.load(pickle_file)
+    tfidf_beneficiario = pd.DataFrame.sparse.from_spmatrix(tfidf_beneficiario_modelo.transform(texto_beneficiario))
+    del texto_beneficiario
     data = data.drop("beneficiario_nome", axis='columns')
     
     # Codigo que gera o meta atributo "orgao_sucedido" onde 1 representa que o orgao tem um novo orgao sucessor e 0 caso contrario
@@ -159,21 +110,14 @@ def tratamentoDados(escolha):
     colunas = data.columns
     for col in colunas:
         if(data[col].dtype != "O"):
-            min_max_scaler.fit(data[col].values.reshape(-1,1))
-            with open('pickles/modelos_tratamentos/'+"normalization_"+col+'.pk', 'wb') as fin:
-                pickle.dump(min_max_scaler, fin)
+            with open('pickles/modelos_tratamentos/'+"normalization_"+col+'.pk', 'rb') as pickle_file:
+                min_max_scaler = pickle.load(pickle_file)
             data[col] = pd.DataFrame(min_max_scaler.transform(data[col].values.reshape(-1,1)))
-            
+    # OHE
+    data = one_hot_encoding.aplyOHE(data)
     # Excluindo as colunas que ja foram tratadas
-    data = data.drop(['empenho_historico','natureza_despesa_cod'], axis='columns')
     data = pd.concat([data,tfidf_beneficiario],axis = 1)
-    if(escolha == "sem OHE"):
-        return data, label
-    elif(escolha == "OHE"):
-        # Aplicando a estrategia One Hot Encoding
-        data = one_hot_encoding.oneHotEncoding(data)
-#        return data, label
-        pickles.criaPickle(data,'data')
-        pickles.criaPickle(label,'label')
-    else: return None
-###########################DADOS TRTADOS######################################
+    aux = sparse.hstack((csr_matrix(data),csr_matrix(tfidf) ))
+    data =  pd.DataFrame.sparse.from_spmatrix(aux)
+    pickles.criaPickle(identificador_empenho,"modelos_tratamentos/identificador_empenho")
+    return data, label

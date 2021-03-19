@@ -4,6 +4,7 @@ import nltk
 import string
 import numpy as np
 import pandas as pd
+import pickle
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.stem import WordNetLemmatizer
@@ -106,11 +107,14 @@ def cleanTextData(texto):
 #        result.append(stemming(temp))
 #        result.append(rslps(temp))
     return result
-
 # Calcula o TFIDF
 def calculaTFIDF(textoTratado):
     cv = TfidfVectorizer(dtype=np.float32)
-    data_cv = cv.fit_transform(textoTratado)
+    data_cv = cv.fit(textoTratado)
+    with open('pickles/modelos_tratamentos/tfidf_modelo.pk', 'wb') as fin:
+        pickle.dump(cv, fin)
+    data_cv = cv.transform(textoTratado)
     tfidf = pd.DataFrame.sparse.from_spmatrix(data_cv, columns = cv.get_feature_names())
 #    tfidf = pd.DataFrame(data_cv.toarray(), columns = cv.get_feature_names())
+    
     return tfidf

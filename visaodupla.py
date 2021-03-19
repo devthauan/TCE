@@ -10,33 +10,37 @@ from modelos import supportVectorMachine
 from modelos import feature_importance
 from preparacaoDados import tratamentoDados
 from modelos import xboosting
+from modelos import xboost
+from tratamentos import pickles
 from modelos import sgd
 from modelos import naive_bayes
 from sklearn import preprocessing
 #from preparacaoDados2 import tratamentoDados
 from sklearn.model_selection import train_test_split
 
-data, label = tratamentoDados("OHE")
-tfidf = tratamentoDados("tfidf") 
+data = pickles.carregaPickle("data")
+label = pickles.carregaPickle("label")
+tfidf = pickles.carregaPickle("tfidf")
 aux = sparse.hstack((csr_matrix(data),csr_matrix(tfidf) ))
 dados =  pd.DataFrame.sparse.from_spmatrix(aux)
 dados = csr_matrix(dados)
+del data
 print(dados.shape)
-X_train, X_test, y_train, y_test = train_test_split(dados, label,test_size=0.3,stratify = label,random_state =5)
-
-
-#le = preprocessing.LabelEncoder()
-#label['natureza_despesa_cod'] = le.fit_transform(label['natureza_despesa_cod'])#LABEL ENCODER
 #X_train, X_test, y_train, y_test = train_test_split(dados, label,test_size=0.3,stratify = label,random_state =5)
-#from modelos import xboost
+
+
+
+le = preprocessing.LabelEncoder()
+label['natureza_despesa_cod'] = le.fit_transform(label['natureza_despesa_cod'])#LABEL ENCODER
+X_train, X_test, y_train, y_test = train_test_split(dados, label,test_size=0.3,stratify = label,random_state =10)
 #valores = [1,10,100,1000,2000,2500,3000]
 #for valor in valores:
 #    xboost.xboost(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",valor)
-#xboost.xboost(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",100)
+xboost.xboost(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",100,label.value_counts().count())
 
-#naive_bayes.naivebayes(X_train.toarray(), X_test.toarray(), y_train, y_test,"COM DADOS COMBINADOS")
-#sgd.sgd(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",100)
-#xboosting.xboost(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",200)
+naive_bayes.naivebayes(X_train.toarray(), X_test.toarray(), y_train, y_test,"COM DADOS COMBINADOS")
+sgd.sgd(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",100)
+xboosting.xboost(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",200)
 
 
 # Random forest
@@ -47,7 +51,7 @@ randomforest.randomForest(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS
 #valores = [1,2,3,5,10,20,50,100]
 #for valor in valores:
 #    knn.knn(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",valor)
-#knn.knn(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",1)
+knn.knn(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",1)
 
 #SVC com parametro menor
 #supportVectorMachine.svc(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",0.1)

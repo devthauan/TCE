@@ -15,10 +15,6 @@ def tratarDados(data):
     data.columns = [c.lower().replace(' ', '_') for c in data.columns]
     data.columns = [tratar_texto.removerCaracteresEspeciais(c)for c in data.columns]
     data.columns = [tratar_texto.tratarnomecolunas(c)for c in data.columns]
-    # Deletando empenhos sem relevancia devido ao saldo zerado
-    index = data["valor_saldo_do_empenho"].where(data["valor_saldo_do_empenho"] == 0).dropna().index
-    data.drop(index,inplace = True)
-    data.reset_index(drop=True, inplace=True)
     identificador_empenho = pd.DataFrame(data['empenho_sequencial_empenho'])
     # Deleta colunas que atraves de analise foram identificadas como nao uteis
     data = data.drop(['classificacao_orcamentaria_descricao',

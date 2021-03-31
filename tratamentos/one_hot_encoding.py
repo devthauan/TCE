@@ -7,7 +7,7 @@ def oneHotEncoding(data):
     colunas = data.columns
     for i in range (len(colunas)):
         if(data[colunas[i]].dtypes == 'O'):
-            enc = OneHotEncoder()
+            enc = OneHotEncoder(handle_unknown = 'ignore')
             enc.fit(data[colunas[i]].values.reshape(-1, 1))
             with open('pickles/modelos_tratamentos/'+"OHE_"+colunas[i]+'.pk', 'wb') as fin:
                 pickle.dump(enc, fin)

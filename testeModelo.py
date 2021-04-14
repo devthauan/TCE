@@ -38,9 +38,10 @@ dados_novos.reset_index(inplace = True,drop=True)
 #dados_novos = dados()
 naturezas_novas = pd.DataFrame(dados_novos['Natureza Despesa (Cod)'])
 fora_do_modelo = []
+label_classes = list(label['natureza_despesa_cod'].value_counts().index)
 for i in range(len(naturezas_novas)):
     # Verifica se os novos dados estao presentes no modelo, caso nao estejam adiciona-os em um vetor separado
-    if(naturezas_novas.iloc[i][0] not in label['natureza_despesa_cod'].values):
+    if(naturezas_novas.iloc[i][0] not in label_classes):
         fora_do_modelo.append(i)
 del naturezas_novas
 dados_fora_modelo = dados_novos.iloc[fora_do_modelo]

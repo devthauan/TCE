@@ -12,6 +12,9 @@ from tratamentos import one_hot_encoding
 ### Meus pacotes ###
 
 def tratamentoDados(escolha):
+    # Pega todos os dados do banco dremio
+#    from conexaoDados import todos_dados
+#    data = todos_dados()
     # Carrega os dados na variavel 'data' utilizando o Pandas
     data = pickles.carregaPickle("df")
     # Trata o nome das colunas para trabalhar melhor com os dados
@@ -28,7 +31,7 @@ def tratamentoDados(escolha):
     index = data["valor_saldo_do_empenho"].where(data["valor_saldo_do_empenho"] == 0).dropna().index
     data.drop(index,inplace = True)
     data.reset_index(drop=True, inplace=True)
-    data = data[:20000] #limitando os dados para fazer testes
+    data = data[:10000] #limitando os dados para fazer testes
     # Deleta colunas que atraves de analise foram identificadas como nao uteis
     data = data.drop(['classificacao_orcamentaria_descricao',
                       'natureza_despesa_nome','valor_estorno_anulacao_empenho',
@@ -42,7 +45,7 @@ def tratamentoDados(escolha):
     data.reset_index(drop=True, inplace=True)
     del linhas_label_unica
     # Excluindo empenhos irrelevantes devido nao estarem mais em vigencia
-    sem_relevancia = pd.read_excel("analise/Naturezas de despesa com vigência encerrada.xlsx")
+    sem_relevancia = pd.read_excel("Naturezas de despesa com vigência encerrada.xlsx")
     sem_relevancia = sem_relevancia['Nat. Despesa']
     sem_relevancia = pd.DataFrame(sem_relevancia)
     excluir = []
@@ -90,7 +93,7 @@ def tratamentoDados(escolha):
     # Codigo que gera o meta atributo "pessoa_juridica" onde 1 representa que a pessoa e juridica e 0 caso seja fisica
     identificacao_pessoa = [0] * data.shape[0]
     for i in range(data.shape[0]):
-      if(data['beneficiario_cpf'].iloc[i] == "-" or np.isnan(data['beneficiario_cpf'].iloc[i])):
+      if(data['beneficiario_cpf'].iloc[i] == "-" or data['beneficiario_cpf'].iloc[i] is None or np.isnan(data['beneficiario_cpf'].iloc[i])):
         identificacao_pessoa[i] = 1
       else: identificacao_pessoa[i]=0
     data['pessoa_juridica'] = identificacao_pessoa

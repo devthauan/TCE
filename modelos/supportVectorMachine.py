@@ -9,21 +9,21 @@ from scipy.sparse import csr_matrix
 
 def svc(X_train, X_test, y_train, y_test,string,valor_c):
     if("Fold" in string):
-        clf = SVC(kernel="linear",C= valor_c,probability = True,random_state=0)
-        clf = SVC(class_weight = "balanced",kernel="linear",C= valor_c,probability = True,random_state=0)
+        clf = SVC(kernel="linear",C= valor_c,probability = True,random_state=10)
+        clf = SVC(class_weight = "balanced",kernel="linear",C= valor_c,probability = True,random_state=10)
         clf.fit(X_train, y_train.values.ravel())
         pickles.criarModelo(clf,"oraculo/"+string) #SALVAR MODELO
         return 0        
     if(string == "prob"):
-        clf = SVC(kernel="linear",C= valor_c,probability = True,random_state=0)
-        clf = SVC(class_weight = "balanced",kernel="linear",C= valor_c,probability = True,random_state=0)
+        clf = SVC(kernel="linear",C= valor_c,probability = True,random_state=10)
+        clf = SVC(class_weight = "balanced",kernel="linear",C= valor_c,probability = True,random_state=10)
         clf.fit(X_train, y_train.values.ravel())
         return clf.predict_proba(X_test)
     if(string == "prob_sparse"):
-        clf = SVC(kernel="linear",C= valor_c,probability = True,random_state=0)
+        clf = SVC(kernel="linear",C= valor_c,probability = True,random_state=10)
         clf.fit(csr_matrix(X_train.values.astype(np.float64)), y_train.values.ravel())
         return clf.predict_proba(X_test)
-    clf =SVC(kernel="linear",C= valor_c,random_state=0)
+    clf =SVC(kernel="linear",C= valor_c,random_state=10)
     if(string == "COM TFIDF"):
         clf.fit(csr_matrix(X_train.values.astype(np.float64)), y_train.values.ravel())
     #    pickles.criarModelo(clf,"SVC com C: "+str(valor_c)+" "+string)

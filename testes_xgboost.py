@@ -1,17 +1,15 @@
+import sys
 import time
 import pandas as pd
+import xgboost as xgb
 from scipy import sparse
-from sklearn.svm import SVC
 from tratamentos import pickles
+from sklearn import preprocessing
 from tratarDados import tratarDados
 from scipy.sparse import csr_matrix
 from sklearn.metrics import f1_score
 from tratamentos import tratar_label
 from preparacaoDados import tratamentoDados
-from sklearn.linear_model import SGDClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier
-from tratarDados import refinamento_hiperparametros
 from sklearn.model_selection import train_test_split
 
 def load_dados(pouca_natureza, porcentagem_split):
@@ -72,61 +70,59 @@ def tratar_dados(data_treino, data_teste, teste):
         return data_treino, label_treino, tfidf_treino, visao_dupla_treino
 
 data_treino, data_teste = load_dados(6, 0.6)
-teste = 0
-data_treino, label_treino, tfidf_treino, visao_dupla_treino = tratar_dados(data_treino, data_teste, teste)
+teste = 1
+data_treino, label_treino, data_teste, label_teste, tfidf_treino, tfidf_teste, visao_dupla_treino, visao_dupla_teste = tratar_dados(data_treino, data_teste, teste)
+
+
 # =============================================================================
 # Gridsearch
 # =============================================================================
-
-# Especificando os modelos
-modelo_1 = RandomForestClassifier(n_jobs = -1, random_state = 10, max_samples = int(label_treino.shape[0]*0.3) )
-modelo_2 = knn_modelo = KNeighborsClassifier(n_jobs = -1)
-modelo_3 = SGDClassifier(loss = "log", random_state = 10)
-modelo_4 = SVC(kernel = "linear", random_state = 10)
-#
-modelos = [modelo_1, modelo_2, modelo_3, modelo_4]
-modelos_nome = ["Random Forest", "Knn", "SGD", "SVC"]
-resultados_modelos = [0]* len(modelos)
+le = preprocessing.LabelEncoder()
+label_treino = le.fit_transform(label_treino)
+label_teste = le.fit_transform(label_teste)
 # Abrindo arquivo de texto para salvar os resultados da avaliacao de hiperparametros
-f = open('HiperParametros.txt','a+')
+f = open('HiperParametros_xgboost.txt','a+')
 strings = ["TF-IDF","visao dupla","OHE"]
 OHE_hiperparametro = TFIDF_hiperparametro = VISAO_DUPLA_hiperparametro = []
-melhores_parametros = [1]*len(modelos)
+melhores_parametros = [1]
 # Rodando o codigo para cada tipo de dado
 for string in strings:
-    ''' Definindo a lista de todos hiperparametros e intervalo de valores a serem
-    avaliados por todos os algoritmos. A ordem dos hiperparametros se referem aos 
-    seguintes algoritmos: Random Forest, KNN, SGD, SVC ''' 
-    parametros_todos_modelos = [{'n_estimators':[100,300,500,700,1000] },
-                        {'n_neighbors':[1,3,5,7] },
-                        {'max_iter':[100,300,500,700] },
-                        {'C':[0.1,1,10,100] },]
-    
+
     if("OHE" in string):
-        data_grid =  csr_matrix(data_treino.copy())
+        data_grid =  data_treino.copy()
+        data_grid = xgb.DMatrix(data_grid, label_treino)
+        dtest = xgb.DMatrix(data_teste)
         f.write(string +"\n")
         print(string)
     elif("TF-IDF" in string):
-        data_grid = csr_matrix(tfidf_treino.copy())
+        data_grid = tfidf_treino.copy()
+        data_grid = xgb.DMatrix(data_grid, label_treino)
+        tfidf_teste.columns = tfidf_treino.columns
+        dtest = xgb.DMatrix(tfidf_teste)
         f.write(string +"\n")
         print(string)
     else:
-        data_grid = csr_matrix(visao_dupla_treino.copy())
+        data_grid = visao_dupla_treino.copy()
+        data_grid = xgb.DMatrix(data_grid, label_treino)
+        dtest = xgb.DMatrix(visao_dupla_teste)
         f.write(string +"\n")
         print(string)
     
     # Fazendo o refinamento de hiperparametros para cada algoritmo
-    for i in range(len(parametros_todos_modelos)):
-        # Aplicando o refinamento
-        if(i == 3 and string == "OHE"):
-            break
-        else:
-            melhores_parametros[i] = refinamento_hiperparametros(data_grid, label_treino, modelos[i], parametros_todos_modelos[i], 3)
-            # Obtendo a melhor acuracia e os melhores valores dos hiperparametros
-        print("Melhor hiperparametro do modelo %s: %s" % (modelos_nome[i],melhores_parametros[i]))
-        # Salvando resultado em arquivo
-        f.write("Melhor acuracia do modelo %s: %s" % (modelos_nome[i],melhores_parametros[i]))
-        f.write('\n')
+    for max_depth in [1,3,5,7]:
+        for num_round in [100,300,500,700]:
+#            param = {'max_depth':max_depth,'objective':'multi:softmax',"eval_metric":"logloss", "num_class":pd.DataFrame(label_treino).value_counts().count()}
+            param = {'max_depth':max_depth,'objective':'multi:softmax','eval_metric':'mlogloss', "num_class":pd.DataFrame(label_treino).value_counts().count()}
+            bst = xgb.train(param, data_grid, num_round)
+            y_predito = bst.predict(dtest)
+            micro = f1_score(label_teste,y_predito,average='micro')
+            macro = f1_score(label_teste,y_predito,average='macro')
+            #f1_individual = f1_score(y_test,y_predito,average=None)    
+            #salvar_dados.salvar(y_test,y_predito,micro, macro, f1_individual," xboost "+string)
+            print("O f1Score MICRO do Xboost com ",num_round," estagios e ",max_depth," profundidade é: ",micro)
+            print("O f1Score MACRO do Xboost com ",num_round," estagios e ",max_depth," profundidade é: ",macro)
+            f.write("O f1Score MICRO do Xboost com "+str(num_round)+" estagios e "+str(max_depth)+" profundidade é: "+str(micro)+"\n")
+            f.write("O f1Score MACRO do Xboost com "+str(num_round)+" estagios e "+str(max_depth)+" profundidade é: "+str(macro)+"\n")
     # Salvando os hiperparametros
     if("OHE" in string):
         OHE_hiperparametro = melhores_parametros.copy()
@@ -140,47 +136,47 @@ for string in strings:
 # =============================================================================
 # Aplicando os hiperparametros
 # =============================================================================
-data_treino, data_teste = load_dados(2, 0.2)
-teste = 1
-data_treino, label_treino, data_teste, label_teste, tfidf_treino, tfidf_teste, visao_dupla_treino, visao_dupla_teste = tratar_dados(data_treino, data_teste, teste)
-resultado_modelo_refinado = open('Resultado_modelos_refinados.txt','a+')
-for string in strings:
-    if("OHE" in string):
-        treino = csr_matrix(data_treino.copy())
-        teste = csr_matrix(data_teste.copy())
-        hiperparametros = OHE_hiperparametro
-        resultado_modelo_refinado.write(string +"\n")
-        print(string)
-    elif("TF-IDF" in string):
-        treino = csr_matrix(tfidf_treino.copy())
-        teste = csr_matrix(tfidf_teste.copy())
-        hiperparametros = TFIDF_hiperparametro
-        resultado_modelo_refinado.write(string +"\n")
-        print(string)
-    else:
-        treino = csr_matrix(visao_dupla_treino.copy())
-        teste = csr_matrix(visao_dupla_teste.copy())
-        hiperparametros = VISAO_DUPLA_hiperparametro
-        resultado_modelo_refinado.write(string +"\n")
-        print(string)
-    # Obtendo a melhor acuracia e os melhores valores dos hiperparametros
-    for i in range(len(modelos)):
-        if(modelos_nome[i] == "SVC" and string == "OHE"):
-            break
-        modelos[i].set_params(**hiperparametros[i])
-        inicio = time.time()
-        modelos[i].fit(treino,label_treino)
-        fim = time.time()
-        tempo = fim - inicio
-        y_predito = modelos[i].predict(teste)
-        micro = f1_score(label_teste,y_predito,average='micro')
-        macro = f1_score(label_teste,y_predito,average='macro')
-        print("O f1Score micro do ",modelos_nome[i]," com ",hiperparametros[i]," é: ",micro)
-        print("O f1Score macro do ",modelos_nome[i]," com ",hiperparametros[i]," é: ",macro)
-        print("Tempo de execucao: ",tempo)
-        resultado_modelo_refinado.write("O f1Score micro do "+modelos_nome[i]+" com "+str(hiperparametros[i])+" é: "+str(micro)+"\n")
-        resultado_modelo_refinado.write("O f1Score macro do "+modelos_nome[i]+" com "+str(hiperparametros[i])+" é: "+str(macro)+"\n")
-        resultado_modelo_refinado.write("Tempo de execucao: "+str(tempo)+"\n")
-    resultado_modelo_refinado.write("\n")
-    resultado_modelo_refinado.flush()
-resultado_modelo_refinado.close()
+#data_treino, data_teste = load_dados(2, 0.2)
+#teste = 1
+#data_treino, label_treino, data_teste, label_teste, tfidf_treino, tfidf_teste, visao_dupla_treino, visao_dupla_teste = tratar_dados(data_treino, data_teste, teste)
+#resultado_modelo_refinado = open('Resultado_modelos_refinados.txt','a+')
+#for string in strings:
+#   if("OHE" in string):
+#       treino = csr_matrix(data_treino.copy())
+#       teste = csr_matrix(data_teste.copy())
+#       hiperparametros = OHE_hiperparametro
+#       resultado_modelo_refinado.write(string +"\n")
+#       print(string)
+#   elif("TF-IDF" in string):
+#       treino = csr_matrix(tfidf_treino.copy())
+#       teste = csr_matrix(tfidf_teste.copy())
+#       hiperparametros = TFIDF_hiperparametro
+#       resultado_modelo_refinado.write(string +"\n")
+#       print(string)
+#   else:
+#       treino = csr_matrix(visao_dupla_treino.copy())
+#       teste = csr_matrix(visao_dupla_teste.copy())
+#       hiperparametros = VISAO_DUPLA_hiperparametro
+#       resultado_modelo_refinado.write(string +"\n")
+#       print(string)
+#   # Obtendo a melhor acuracia e os melhores valores dos hiperparametros
+#   
+#   
+#   modelos[i].set_params(**hiperparametros[i])
+#   inicio = time.time()
+#   modelos[i].fit(treino,label_treino)
+#   fim = time.time()
+#   tempo = fim - inicio
+#   y_predito = modelos[i].predict(teste)
+#   micro = f1_score(label_teste,y_predito,average='micro')
+#   macro = f1_score(label_teste,y_predito,average='macro')
+#   print("Tempo de execucao: ",tempo)
+#   print("O f1Score micro do ",modelos_nome[i]," com ",hiperparametros[i]," é: ",micro)
+#   print("O f1Score macro do ",modelos_nome[i]," com ",hiperparametros[i]," é: ",macro)
+#   resultado_modelo_refinado.write("Tempo de execucao: "+str(tempo)+"\n")
+#   resultado_modelo_refinado.write("O f1Score micro do "+modelos_nome[i]+" com "+str(hiperparametros[i])+" é: "+str(micro)+"\n")
+#   resultado_modelo_refinado.write("O f1Score macro do "+modelos_nome[i]+" com "+str(hiperparametros[i])+" é: "+str(macro)+"\n")
+#   resultado_modelo_refinado.write("\n")
+#   resultado_modelo_refinado.flush()
+#resultado_modelo_refinado.close()
+#  

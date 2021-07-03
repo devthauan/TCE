@@ -4,8 +4,8 @@ import pandas as pd
 from datetime import date, timedelta
 ## Variuaveis
 pathDremioJDBC = 'dremio-jdbc-driver-14.0.0-202103011714040666-9a0c2e10.jar' ## Caminho para driver JDBC do Dremio.
-usr_dremio = "iasie" ## Usuario acesso Dremio
-pswd_dremio = "i1vU&#k4SW" ## Senha acesso Dremio
+usr_dremio = "" ## Usuario acesso Dremio
+pswd_dremio = "" ## Senha acesso Dremio
 
 ## Consulta Base Dremio - Retorna dados do ultimo dia de recepção dos dados
 sqlEOF =  'SELECT "Exercício do orçamento (Ano)" ' \
@@ -63,7 +63,7 @@ def todos_dados():
     pickles.criaPickle(df,"df")
     return df
 
-def range_dados(valor = 0):
+def range_dados(valor = 0, orgao = 0):
     conn = jaydebeapi.connect("com.dremio.jdbc.Driver", "jdbc:dremio:direct=bdata01.tce.go.gov.br:31010", [usr_dremio, pswd_dremio], pathDremioJDBC)
     curs = conn.cursor()
      # Se nao receber parametros avalia a ultima data (ultima data e o dia anterior)
@@ -71,12 +71,18 @@ def range_dados(valor = 0):
         valor = (date.today()-timedelta(days=1)).strftime('%Y/%m/%d')
         valor = "\'"+valor+"\'"
         curs.execute(sqlEOF+' WHERE c."Período (Dia/Mes/Ano)" = dia'.replace("dia",valor))
-    elif("a" in valor):
+    elif("a" in valor and orgao !=0):
+        inicio = valor.split(" ")[0]
+        fim =valor.split(" ")[2]
+        curs.execute(sqlEOF+' WHERE c."Período (Dia/Mes/Ano)" >= inicio and "Período (Dia/Mes/Ano)" <= fim and "Órgão (Código/Nome)" = orgao'.replace("inicio",inicio).replace("fim",fim).replace("orgao",orgao))
+    elif("a" in valor and orgao ==0):
         inicio = valor.split(" ")[0]
         fim =valor.split(" ")[2]
         curs.execute(sqlEOF+' WHERE c."Período (Dia/Mes/Ano)" >= inicio and "Período (Dia/Mes/Ano)" <= fim'.replace("inicio",inicio).replace("fim",fim))
-    else:
+    elif(orgao ==0):
         curs.execute(sqlEOF+' WHERE c."Período (Dia/Mes/Ano)" = dia'.replace("dia",valor))
+    else:
+        curs.execute(sqlEOF+' WHERE c."Período (Dia/Mes/Ano)" = dia and "Órgão (Código/Nome)" = orgao'.replace("dia",valor).replace("orgao",orgao))
     nomeCampos = [i[0] for i in curs.description]
     df = pd.DataFrame(curs.fetchall(),columns=nomeCampos)
     pickles.criaPickle(df,"dados_teste")

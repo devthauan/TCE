@@ -34,12 +34,12 @@ def featureImportance(data, label, num_features_mais_importantes,porcentagem):
     features_mais_importantes = []
     valor = [0,0]
     for j in range(num_features_mais_importantes):
-      for i in range(len(importancia)):
-        if(importancia[i]>valor[1]):
-          valor[0]=i
-          valor[1]=importancia[i]
-      importancia[valor[0]]=-1   
-      features_mais_importantes.append(valor[0])
-      valor = [0,0]
-    colunas_importantes = colunas[features_mais_importantes]
+        for i in range(len(importancia)):
+            if(importancia[i]>valor[1]):
+                valor[0]=i
+                valor[1]=importancia[i]
+        importancia[valor[0]]=-1   
+        features_mais_importantes.append(valor[0])
+        valor = [0,0]
+    colunas_importantes = features_mais_importantes
     return data, colunas_importantes

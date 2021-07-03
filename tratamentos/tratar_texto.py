@@ -111,7 +111,7 @@ def cleanTextData(texto):
 def calculaTFIDF(textoTratado):
     cv = TfidfVectorizer(dtype=np.float32)
     data_cv = cv.fit(textoTratado)
-    with open('pickles/modelos_tratamentos/tfidf_modelo.pk', 'wb') as fin:
+    with open('pickles/modelos_tratamentos/tfidf_modelo'+'.pk', 'wb') as fin:
         pickle.dump(cv, fin)
     data_cv = cv.transform(textoTratado)
     tfidf = pd.DataFrame.sparse.from_spmatrix(data_cv, columns = cv.get_feature_names())

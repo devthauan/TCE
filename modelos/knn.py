@@ -15,15 +15,11 @@ def knn(X_train, X_test, y_train, y_test,string,num_neighbors):
         return clf.predict(X_test)#,min_max_scaler.fit_transform(distancia)
     clf = KNeighborsClassifier(n_neighbors=num_neighbors,n_jobs = -1)
     clf.fit(X_train, y_train.values.ravel())
-    #pickles.criarModelo(clf,"Rocchio "+string)
     if("Fold" in string):
         pickles.criarModelo(clf,"oraculo/"+string) #SALVAR MODELO
         return 0
     y_predito = clf.predict(X_test)
     micro = f1_score(y_test,y_predito,average='micro')
     macro = f1_score(y_test,y_predito,average='macro')
-    #f1_individual = f1_score(y_test,y_predito,average=None)    
-    #salvar_dados.salvar(y_test,y_predito,micro, macro, f1_individual," Knn "+string)
     print("O f1Score micro do Knn ", string ," com ",num_neighbors," vizinhos é: ",micro)
     print("O f1Score macro do Knn ", string ," com ",num_neighbors," vizinhos é: ",macro)
-#    return y_predito

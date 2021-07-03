@@ -18,12 +18,14 @@ from sklearn import preprocessing
 #from preparacaoDados2 import tratamentoDados
 from sklearn.model_selection import train_test_split
 
-data = pickles.carregaPickle("data")
-label = pickles.carregaPickle("label")
-tfidf = pickles.carregaPickle("tfidf")
-aux = sparse.hstack((csr_matrix(data),csr_matrix(tfidf) ))
-dados =  pd.DataFrame.sparse.from_spmatrix(aux)
-dados = csr_matrix(dados)
+#tratamentoDados("OHE")
+#tratamentoDados("tfidf")
+data = pickles.carregarPickle("data")[:1000]
+label = pickles.carregarPickle("label")[:1000]
+tfidf = pickles.carregarPickle("tfidf")[:1000]
+dados = sparse.hstack((csr_matrix(data),csr_matrix(tfidf) ))
+dados =  pd.DataFrame.sparse.from_spmatrix(dados)
+#dados = csr_matrix(dados)
 del data
 print(dados.shape)
 #X_train, X_test, y_train, y_test = train_test_split(dados, label,test_size=0.3,stratify = label,random_state =5)
@@ -33,6 +35,7 @@ print(dados.shape)
 le = preprocessing.LabelEncoder()
 label['natureza_despesa_cod'] = le.fit_transform(label['natureza_despesa_cod'])#LABEL ENCODER
 X_train, X_test, y_train, y_test = train_test_split(dados, label,test_size=0.3,stratify = label,random_state =10)
+X_train, X_test, y_train, y_test = train_test_split(dados, label,test_size=0.3,random_state =10)
 #valores = [1,10,100,1000,2000,2500,3000]
 #for valor in valores:
 #    xboost.xboost(X_train, X_test, y_train, y_test,"COM DADOS COMBINADOS",valor)

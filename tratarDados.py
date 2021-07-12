@@ -81,15 +81,15 @@ def tratarDados(data, opcao = "visao dupla"):
         return data, label
 
 
-def refinamento_hiperparametros(data_treino, label_treino, modelo , hiperparametros, espalhamento):
+def refinamento_hiperparametros(data_treino, label_treino, modelo , hiperparametros, espalhamento, avaliacao = "f1_micro"):
     # Executando 3 fold cross-validation nos dados para achar o melhor conjunto de hiperparametros
-    grid = GridSearchCV(modelo, hiperparametros, n_jobs = -1, cv = 3)
+    grid = GridSearchCV(modelo, hiperparametros, n_jobs = -1, cv = 3, scoring = avaliacao)
     grid.fit(data_treino, label_treino.values.ravel())
     # Salvando resultado do modelo para a etapa de refinamento
     primeira_etapa_refinamento = grid.best_params_
     # Pegando a vizinhanca do melhor valor
     hiperparametros =  vizinhanca_hiperparametros( primeira_etapa_refinamento, espalhamento, hiperparametros)
-    grid = GridSearchCV(modelo, hiperparametros, n_jobs = -1, cv = 3)
+    grid = GridSearchCV(modelo, hiperparametros, n_jobs = -1, cv = 3, scoring = avaliacao)
     grid.fit(data_treino, label_treino.values.ravel())
     return grid.best_params_
 
